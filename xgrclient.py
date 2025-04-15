@@ -48,7 +48,7 @@ class XGrammarMCPClient:
         is_js = server_script_path.endswith('.js')
         if not (is_python or is_js):
             raise ValueError("Server script must be a .py or .js file")
-            
+        
         command = "python" if is_python else "node"
         server_params = StdioServerParameters(
             command=command,
@@ -88,14 +88,51 @@ class XGrammarMCPClient:
         self.xgr_logits_processor = xgr.contrib.hf.LogitsProcessor(self.compiled_grammar)
         
         print(f"Grammar updated with {len(tags)} tools")
+    
+    def _create_system_prompt_with_tools(self) -> str:
+        """Create a system prompt that includes tool definitions"""
+        tool_descriptions = []
+    
+        for tool in self.tools:
+            # Format the tool schema as a string
+            schema_str = json.dumps(tool.inputSchema, indent=2)
+        
+            # Add tool description to the list
+            tool_description = f"""
+            Tool: {tool.name}
+            Description: {tool.description}
+            Schema: {schema_str}
+            """
+            tool_descriptions.append(tool_description)
+    
+        # Create the complete system prompt
+        system_prompt = f"""You are a helpful assistant with access to the following tools:
+
+{''.join(tool_descriptions)}
+
+To use a tool, respond with:
+<function=TOOL_NAME>
+{{
+  "param1": "value1",
+  "param2": "value2"
+}}
+</function>
+
+First think about whether you need to use a tool. If not, just respond normally.
+If you need to use a tool, format your response correctly according to the tool's schema.
+        """
+        return system_prompt
 
     async def process_query(self, query: str) -> str:
         """Process a query using XGrammar LLM and available tools"""
         # Build the prompt
         self._setup_grammar_for_tools()
+
+        system_prompt = self._create_system_prompt_with_tools()
         
         # Prepare conversation for Llama
         messages = [
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": query}
         ]
         
