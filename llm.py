@@ -11,6 +11,6 @@ else:
 """Refer to https://docs.sglang.ai/backend/function_calling.html for supported models"""
 
 server_process, port = launch_server_cmd(
-    "python3 -m sglang.launch_server --model-path meta-llama/Llama-3.2-3B-Instruct --tool-call-parser llama3 --host 0.0.0.0"  # qwen25
+    "python3 -m sglang.launch_server --model-path meta-llama/Llama-3.2-3B-Instruct --host 0.0.0.0"
 )
 wait_for_server(f"http://localhost:{port}")
